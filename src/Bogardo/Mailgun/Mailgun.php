@@ -4,6 +4,7 @@ use Bogardo\Mailgun\Mailgun\Lists;
 use Bogardo\Mailgun\Mailgun\MailgunApi;
 use Config;
 use Closure;
+use Illuminate\Events\Dispatcher;
 use Illuminate\View\Factory;
 use Bogardo\Mailgun\Mailgun\Message;
 
@@ -44,17 +45,22 @@ class Mailgun extends MailgunApi
      * @var \Bogardo\Mailgun\Mailgun\Lists
      */
     protected $lists;
+	/**
+	 * @var Dispatcher
+	 */
+	private $dispatcher;
 
 	/**
 	 * Create a new Mailer instance.
 	 *
 	 * @param  \Illuminate\View\Factory $views
 	 *
-	 * @return \Bogardo\Mailgun\Mailgun
+	 * @param Dispatcher $dispatcher
 	 */
-    public function __construct(Factory $views)
+    public function __construct(Factory $views, Dispatcher $dispatcher)
     {
-        $this->views = $views;
+      $this->views = $views;
+	    $this->dispatcher = $dispatcher;
     }
 
 	/**
@@ -97,6 +103,8 @@ class Mailgun extends MailgunApi
 		$this->callMessageBuilder($callback, $this->message);
 
 		$this->getMessage($view, $data);
+
+		$this->dispatcher->fire('mailgun.beforeSend', array($this->message));
 
 		return $this->mailgun()->sendMessage(Config::get('mailgun::domain'), $this->getMessageData(), $this->getAttachmentData());
 	}
